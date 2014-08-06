@@ -12,6 +12,10 @@ import scala.util.Try
  * See RFC 6238.
  */
 object TOTP {
+  val HMAC_SHA1 = "HmacSHA1"
+  val HMAC_SHA256 = "HmacSHA256"
+  val HMAC_SHA512 = "HmacSHA512"
+
   implicit class StringExt(val s: String) extends AnyVal {
     def padPrefix(length: Int, char: Char): String =
       (char.toString * (length - s.size)) + s
@@ -33,17 +37,16 @@ object TOTP {
     1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000
   )
 
-  def generateTOTP(key: String, time: String, returnDigits: String): Try[String] =
-    generateTOTP(key, time, returnDigits, "HmacSHA1")
+  def generateTOTP(key: String, time: String, codeDigits: Int): Try[String] =
+    generateTOTP(key, time, codeDigits, HMAC_SHA1)
 
-  def generateTOTP256(key: String, time: String, returnDigits: String): Try[String] =
-    generateTOTP(key, time, returnDigits, "HmacSHA256")
+  def generateTOTP256(key: String, time: String, codeDigits: Int): Try[String] =
+    generateTOTP(key, time, codeDigits, HMAC_SHA256)
 
-  def generateTOTP512(key: String, time: String, returnDigits: String): Try[String] =
-    generateTOTP(key, time, returnDigits, "HmacSHA512")
+  def generateTOTP512(key: String, time: String, codeDigits: Int): Try[String] =
+    generateTOTP(key, time, codeDigits, HMAC_SHA512)
 
-  def generateTOTP(key: String, time: String, returnDigits: String, crypto: String): Try[String] = {
-    val codeDigits: Int = Integer.decode(returnDigits).intValue()
+  def generateTOTP(key: String, time: String, codeDigits: Int, crypto: String): Try[String] = {
     val paddedTime = time.padPrefix(16, '0')
     val msg = hexStr2Bytes(paddedTime)
     val k = hexStr2Bytes(key)
@@ -73,7 +76,6 @@ object TOTP {
     val X = 30L
     val testTime = Array(59L, 1111111109L, 1111111111L,
       1234567890L, 2000000000L, 20000000000L)
-    val steps = "0"
     val df: DateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     df.setTimeZone(TimeZone.getTimeZone("UTC"))
 
@@ -88,15 +90,15 @@ object TOTP {
       val steps = T.toHexString.toUpperCase.padPrefix(16, '0')
       val fmtTime = String.format("%1$-11s", new java.lang.Long(t))
       val utcTime = df.format(new Date(t * 1000))
-      for (totp <- generateTOTP(seed, steps, "8", "HmacSHA1")) {
+      for (totp <- generateTOTP(seed, steps, 8, "HmacSHA1")) {
         println("|  " + fmtTime + "  |  " + utcTime +
           "  | " + steps + " |" + totp + "| SHA1   |")
       }
-      for (totp <- generateTOTP256(seed32, steps, "8")) {
+      for (totp <- generateTOTP256(seed32, steps, 8)) {
         println("|  " + fmtTime + "  |  " + utcTime +
           "  | " + steps + " |" + totp + "| SHA256 |")
       }
-      for (totp <- generateTOTP512(seed64, steps, "8")) {
+      for (totp <- generateTOTP512(seed64, steps, 8)) {
         println("|  " + fmtTime + "  |  " + utcTime +
           "  | " + steps + " |" + totp + "| SHA512 |")
       }
